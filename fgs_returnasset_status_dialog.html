@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Return Asset</title>
+    <script>
+        // Runs when the dialog is loaded
+        window.onload = function () {
+            const recordId = parseRecordIdFromQuery();
+            displayRecordId(recordId);
+        };
+
+        /**
+         * Parses the record ID from the query string.
+         * @returns {string} The record ID.
+         */
+        function parseRecordIdFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const data = params.get("data");
+            const parsedData = JSON.parse(data || "{}");
+            return parsedData.recordId || "Unknown";
+        }
+
+        /**
+         * Displays the record ID in the HTML.
+         * @param {string} recordId - The record ID to display.
+         */
+        function displayRecordId(recordId) {
+            document.getElementById("recordId").innerText = `Record ID: ${recordId}`;
+        }
+
+        /**
+         * Handles the submission of the form.
+         */
+        function handleSubmit() {
+            const selectedStatus = getSelectedStatus();
+
+            if (!selectedStatus) {
+                alert("Please select a status!");
+                return;
+            }
+
+            const recordId = parseRecordIdFromQuery();
+            returnResultToParent(selectedStatus, recordId);
+        }
+
+        /**
+         * Retrieves the selected status from the dropdown.
+         * @returns {string} The selected status value.
+         */
+        function getSelectedStatus() {
+            return document.getElementById("statusDropdown").value;
+        }
+
+        /**
+         * Passes the selected status and record ID back to the parent and closes the dialog.
+         * @param {string} selectedStatus - The selected status.
+         * @param {string} recordId - The record ID to return.
+         */
+        function returnResultToParent(selectedStatus, recordId) {
+            window.returnValue = {
+                selectedStatus: selectedStatus,
+                recordId: recordId
+            };
+            window.close();
+        }
+
+        /**
+         * Closes the dialog without returning any value.
+         */
+        function handleCancel() {
+            window.returnValue = null;
+            window.close();
+        }
+    </script>
+</head>
+<body>
+    <h1>Return Asset</h1>
+    <p id="recordId">Loading...</p>
+    <form id="statusForm" onsubmit="handleSubmit(); return false;">
+        <label for="statusDropdown">Select Return Status:</label>
+        <select id="statusDropdown" required>
+            <option value="">-- Select Status --</option>
+            <option value="795540000">🔵 Operational</option>
+            <option value="795540001">🟡 Requires Attention</option>
+            <option value="795540002">🔴 Requires Repair</option>
+            <option value="795540003">⚫ Retired/Sold</option>
+        </select>
+        <br><br>
+        <input type="submit" value="Submit">
+        <button type="button" onclick="handleCancel()">Cancel</button>
+    </form>
+</body>
+</html>
