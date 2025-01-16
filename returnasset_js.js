@@ -1,6 +1,7 @@
 async function returnAsset(gridContext) {
     try {
         const recordIds = getSelectedRecordIds(gridContext);
+        const updatePromises = []; // Array to collect all update promises
 
         for (const recordId of recordIds) {
             // Fetch and log the asset name for the current record ID
@@ -13,11 +14,21 @@ async function returnAsset(gridContext) {
             console.log(`Dialog Result for Record ID ${recordId}:`, dialogResult);
 
             if (dialogResult) {
-                handleDialogSuccess(recordId, assetName, dialogResult);
+                // Collect the update promise for each record
+                const updatePromise = handleDialogSuccess(recordId, assetName, dialogResult);
+                updatePromises.push(updatePromise);
             } else {
                 console.log(`Dialog closed without returning data for Record ID: ${recordId}.`);
             }
         }
+
+        // Wait for all updates to complete
+        await Promise.all(updatePromises);
+        console.log("All updates completed. Refreshing the grid...");
+
+        // Refresh the grid after all updates are completed
+        refreshGrid(gridContext);
+
     } catch (error) {
         handleError(error);
     }
@@ -72,10 +83,11 @@ function openDialog(recordId, assetName) {
 
 /**
  * Handles the success case when the dialog returns data for a specific asset.
- * Updates the fgs_statusafterreturn column in the fgs_projectasset table.
- * @param {string} recordId - The record ID of the asset to update.
+ * Updates multiple columns in the fgs_projectasset table and the related Asset table.
+ * @param {string} recordId - The record ID of the Project Asset to update.
  * @param {string} assetName - The Asset Name the dialog was for.
  * @param {Object} dialogResult - The data returned by the dialog.
+ * @returns {Promise<void>} A promise that resolves when all updates are complete.
  */
 async function handleDialogSuccess(recordId, assetName, dialogResult) {
     const selectedStatus = dialogResult.returnValue.selectedStatus;
@@ -84,33 +96,38 @@ async function handleDialogSuccess(recordId, assetName, dialogResult) {
     console.log(`Selected Status: ${selectedStatus}`);
 
     try {
-        // Create the data object for the update
-        const data = {
-            fgs_statusafterreturn: selectedStatus // Use the correct logical name for the column
+        // Update multiple columns in the fgs_projectasset table
+        const projectAssetUpdateData = {
+            fgs_statusafterreturn: selectedStatus, // Logical name for the column
+            fgs_assetassignmentstatus: 2, // Logical name for the "Returned" status
+            fgs_returneddate: new Date().toISOString() // Current date and time in ISO format
         };
 
-        // Update the fgs_projectasset table
-        console.log(`Updating fgs_statusafterreturn for Record ID: ${recordId}`);
-        await Xrm.WebApi.updateRecord("fgs_projectasset", recordId, data);
+        console.log(`Updating fgs_projectasset for Record ID: ${recordId}`);
+        await Xrm.WebApi.updateRecord("fgs_projectasset", recordId, projectAssetUpdateData);
 
-        console.log(`Successfully updated fgs_statusafterreturn for Asset: ${assetName}`);
+        console.log(`Successfully updated fgs_projectasset for Asset: ${assetName}`);
 
-        // Show success alert to the user
-        Xrm.Navigation.openAlertDialog({
-            text: `Asset: ${assetName}\nStatus successfully updated to: ${selectedStatus}`,
-            title: "Update Success"
-        });
+        // Update the assetstatus in the related Asset table
+        const assetId = await fetchAssetIdFromProjectAsset(recordId); // Get the related Asset ID
+        if (assetId) {
+            const assetUpdateData = {
+                fgs_assetstatus: selectedStatus // Logical name for the column
+            };
+
+            console.log(`Updating assetstatus for Asset ID: ${assetId}`);
+            await Xrm.WebApi.updateRecord("fgs_asset", assetId, assetUpdateData);
+
+            console.log(`Successfully updated assetstatus for Asset: ${assetName}`);
+        } else {
+            console.warn(`No related Asset ID found for Project Asset ID: ${recordId}`);
+        }
+
     } catch (error) {
         console.error(`Error updating status for Asset: ${assetName}`, error);
-
-        // Show error alert to the user
-        Xrm.Navigation.openAlertDialog({
-            text: `An error occurred while updating the status for Asset: ${assetName}\nError: ${error.message}`,
-            title: "Update Failed"
-        });
+        throw error; // Ensure errors propagate back to the caller
     }
 }
-
 
 /**
  * Handles errors in the overall process.
@@ -151,5 +168,48 @@ async function fetchAssetName(recordId) {
     } catch (error) {
         console.error(`Error fetching Asset Name for Project Asset ID: ${recordId}`, error);
         throw new Error(`Failed to fetch Asset Name for Project Asset ID: ${recordId}`);
+    }
+}
+
+/**
+ * Fetches the related Asset ID from the fgs_projectasset table using the Project Asset record ID.
+ * @param {string} recordId - The record ID of the Project Asset.
+ * @returns {Promise<string>} A promise that resolves to the related Asset ID.
+ */
+async function fetchAssetIdFromProjectAsset(recordId) {
+    const navigationProperty = "fgs_Asset"; // Navigation property to the related Asset entity
+    const assetIdField = "fgs_assetid"; // Field name for the Asset ID in the related entity
+
+    try {
+        const query = `?$select=${navigationProperty}&$expand=${navigationProperty}($select=${assetIdField})`;
+        const projectAsset = await Xrm.WebApi.retrieveRecord("fgs_projectasset", recordId, query);
+
+        const asset = projectAsset[navigationProperty];
+        if (asset && asset[assetIdField]) {
+            return asset[assetIdField];
+        } else {
+            console.warn(`No related Asset found for Project Asset ID: ${recordId}`);
+            return null;
+        }
+    } catch (error) {
+        console.error(`Error fetching related Asset ID for Project Asset ID: ${recordId}`, error);
+        throw new Error(`Failed to fetch related Asset ID for Project Asset ID: ${recordId}`);
+    }
+}
+
+/**
+ * Refreshes the grid after updates.
+ * @param {object} gridContext - The grid context object.
+ */
+function refreshGrid(gridContext) {
+    try {
+        gridContext.refresh(); // Refresh the grid in the current context
+        console.log("Grid refreshed successfully.");
+    } catch (error) {
+        console.error("Error refreshing the grid:", error);
+        Xrm.Navigation.openAlertDialog({
+            text: "An error occurred while refreshing the grid. Please reload the page manually.",
+            title: "Grid Refresh Error"
+        });
     }
 }
