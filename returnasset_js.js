@@ -1,17 +1,22 @@
 async function returnAsset(gridContext) {
     try {
         const recordIds = getSelectedRecordIds(gridContext);
+
         for (const recordId of recordIds) {
             // Fetch and log the asset name for the current record ID
             const assetName = await fetchAssetName(recordId);
             console.log(`Fetched Asset Name for Record ID ${recordId}: ${assetName}`);
-        }
-        const dialogResult = await openDialog(recordIds);
-        console.log("Dialog Result:", dialogResult);
-        if (dialogResult) {
-            handleDialogSuccess(dialogResult);
-        } else {
-            console.log("Dialog closed without returning data.");
+
+            // Open a dialog for each record ID individually
+            const dialogResult = await openDialog(recordId, assetName);
+
+            console.log(`Dialog Result for Record ID ${recordId}:`, dialogResult);
+
+            if (dialogResult) {
+                handleDialogSuccess(recordId, assetName, dialogResult);
+            } else {
+                console.log(`Dialog closed without returning data for Record ID: ${recordId}.`);
+            }
         }
     } catch (error) {
         handleError(error);
@@ -39,15 +44,16 @@ function getSelectedRecordIds(gridContext) {
 }
 
 /**
- * Opens a dialog with the given record IDs.
- * @param {Array} recordIds - The record IDs to pass to the dialog.
+ * Opens a dialog for a specific record ID and its asset name.
+ * @param {string} recordId - The record ID to pass to the dialog.
+ * @param {string} assetName - The asset name to pass to the dialog.
  * @returns {Promise} A promise that resolves with the dialog's return value.
  */
-function openDialog(recordIds) {
+function openDialog(recordId, assetName) {
     const pageInput = {
         pageType: "webresource",
         webresourceName: "fgs_returnasset_status_dialog", // Your actual web resource name
-        data: JSON.stringify(recordIds) // Pass record IDs as a string
+        data: JSON.stringify({ recordId, assetName }) // Pass both recordId and assetName
     };
 
     const navigationOptions = {
@@ -55,24 +61,26 @@ function openDialog(recordIds) {
         width: 400,
         height: 300,
         position: 1, // Centered
-        title: "Update Asset Status"
+        title: `Update Status for Asset: ${assetName}`
     };
 
     return Xrm.Navigation.navigateTo(pageInput, navigationOptions).catch((error) => {
-        console.error("Error opening dialog:", error);
+        console.error(`Error opening dialog for Record ID ${recordId}:`, error);
         throw error;
     });
 }
 
 /**
- * Handles the success case when the dialog returns data.
+ * Handles the success case when the dialog returns data for a specific record.
+ * @param {string} recordId - The record ID the dialog was for.
+ * @param {string} assetName - The Asset Name the dialog was for.
  * @param {Object} dialogResult - The data returned by the dialog.
  */
-function handleDialogSuccess(dialogResult) {
-    console.log("Returned Value:", dialogResult);
+function handleDialogSuccess(recordId, assetName, dialogResult) {
+    console.log(`Record ID: ${recordId}, Asset: ${assetName}, Returned Value:`, dialogResult);
 
     Xrm.Navigation.openAlertDialog({
-        text: `Selected Status: ${dialogResult.returnValue.selectedStatus}\nRecord IDs: ${dialogResult.returnValue.recordId}`,
+        text: `Asset: ${assetName}\nSelected Status: ${dialogResult.returnValue.selectedStatus}\nRecord ID: ${recordId}`,
         title: "Success"
     });
 }

@@ -5,27 +5,32 @@
     <script>
         // Runs when the dialog is loaded
         window.onload = function () {
-            const recordId = parseRecordIdFromQuery();
-            displayRecordId(recordId);
+            const { recordId, assetName } = parseDialogData();
+            displayDialogData(recordId, assetName);
         };
 
         /**
-         * Parses the record ID from the query string.
-         * @returns {string} The record ID.
+         * Parses the record ID and asset name from the query string.
+         * @returns {Object} An object containing recordId and assetName.
          */
-        function parseRecordIdFromQuery() {
+        function parseDialogData() {
             const params = new URLSearchParams(window.location.search);
             const data = params.get("data");
             const parsedData = JSON.parse(data || "{}");
-            return parsedData.recordId || "Unknown";
+            return {
+                recordId: parsedData.recordId || "Unknown",
+                assetName: parsedData.assetName || "Unknown"
+            };
         }
 
         /**
-         * Displays the record ID in the HTML.
+         * Displays the record ID and asset name in the HTML.
          * @param {string} recordId - The record ID to display.
+         * @param {string} assetName - The asset name to display.
          */
-        function displayRecordId(recordId) {
+        function displayDialogData(recordId, assetName) {
             document.getElementById("recordId").innerText = `Record ID: ${recordId}`;
+            document.getElementById("assetName").innerText = `Asset Name: ${assetName}`;
         }
 
         /**
@@ -39,8 +44,8 @@
                 return;
             }
 
-            const recordId = parseRecordIdFromQuery();
-            returnResultToParent(selectedStatus, recordId);
+            const { recordId, assetName } = parseDialogData();
+            returnResultToParent(selectedStatus, recordId, assetName);
         }
 
         /**
@@ -52,14 +57,16 @@
         }
 
         /**
-         * Passes the selected status and record ID back to the parent and closes the dialog.
+         * Passes the selected status, record ID, and asset name back to the parent and closes the dialog.
          * @param {string} selectedStatus - The selected status.
          * @param {string} recordId - The record ID to return.
+         * @param {string} assetName - The asset name to return.
          */
-        function returnResultToParent(selectedStatus, recordId) {
+        function returnResultToParent(selectedStatus, recordId, assetName) {
             window.returnValue = {
                 selectedStatus: selectedStatus,
-                recordId: recordId
+                recordId: recordId,
+                assetName: assetName
             };
             window.close();
         }
@@ -75,7 +82,8 @@
 </head>
 <body>
     <h1>Return Asset</h1>
-    <p id="recordId">Loading...</p>
+    <p id="recordId">Loading Record ID...</p>
+    <p id="assetName">Loading Asset Name...</p>
     <form id="statusForm" onsubmit="handleSubmit(); return false;">
         <label for="statusDropdown">Select Return Status:</label>
         <select id="statusDropdown" required>
