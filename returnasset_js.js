@@ -45,7 +45,7 @@ function openDialog(assetName) {
     const navigationOptions = {
         target: 2,
         width: 400,
-        height: 300,
+        height: 500,
         position: 1,
         title: `Update Status for Asset: ${assetName}`
     };
@@ -57,12 +57,14 @@ function openDialog(assetName) {
 
 async function handleDialogSuccess(recordId, dialogResult) {
     const selectedStatus = dialogResult.returnValue.selectedStatus; //input from user
+    const statusNote = dialogResult.returnValue.statusNote; //input from user
 
     try {
         const projectAssetUpdateData = {
             fgs_statusafterreturn: selectedStatus,
             fgs_assetassignmentstatus: 2,
-            fgs_returneddate: new Date().toISOString()
+            fgs_returneddate: new Date().toISOString(),
+            fgs_returnstatuscomments: statusNote
         };
 
         await Xrm.WebApi.updateRecord("fgs_projectasset", recordId, projectAssetUpdateData);

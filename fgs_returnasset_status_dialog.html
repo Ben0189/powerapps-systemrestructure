@@ -103,13 +103,19 @@
         <p id="assetName">Loading Asset Name...</p>
         <form id="statusForm" onsubmit="handleSubmit(); return false;">
             <label for="statusDropdown">Select Return Status:</label>
-            <select id="statusDropdown" required>
+            <select id="statusDropdown" required onchange="toggleCommentBox()">
                 <option value="">-- Select Status --</option>
                 <option value="795540000">🟢 Operational</option>
                 <option value="795540001">🟡 Requires Attention</option>
                 <option value="795540002">🔴 Requires Repair</option>
                 <option value="795540003">⛔️ Retired/Sold</option>
             </select>
+            
+            <div id="commentBox" style="display: none; margin-top: 10px;">
+                <label for="statusNote">Return Status Comments:</label>
+                <textarea id="statusNote" placeholder="Enter comments (optional)" rows="3" style="width: 100%; margin-bottom: 20px;"></textarea>
+            </div>
+
             <input type="submit" value="Submit">
             <button type="button" onclick="handleCancel()">Cancel</button>
         </form>
@@ -149,6 +155,7 @@
          */
         function handleSubmit() {
             const selectedStatus = getSelectedStatus();
+            const statusNote = getStatusNote();
 
             if (!selectedStatus) {
                 alert("Please select a status!");
@@ -156,7 +163,7 @@
             }
 
             const { assetName } = parseDialogData();
-            returnResultToParent(selectedStatus, assetName);
+            returnResultToParent(selectedStatus, assetName, statusNote);
         }
 
         /**
@@ -168,14 +175,23 @@
         }
 
         /**
+         * Retrieves the return status comments from the text area.
+         * @returns {string} The comments entered by the user.
+         */
+        function getStatusNote() {
+            return document.getElementById("statusNote").value.trim();
+        }
+
+        /**
          * Passes the selected status and asset name back to the parent and closes the dialog.
          * @param {string} selectedStatus - The selected status.
          * @param {string} assetName - The asset name to return.
          */
-        function returnResultToParent(selectedStatus, assetName) {
+        function returnResultToParent(selectedStatus, assetName, statusNote) {
             window.returnValue = {
                 selectedStatus: selectedStatus,
-                assetName: assetName
+                assetName: assetName,
+                statusNote: statusNote
             };
             window.close();
         }
@@ -187,6 +203,22 @@
             window.returnValue = null;
             window.close();
         }
+
+        /**
+         * Toggles the visibility of the comment box based on the selected status.
+         */
+        function toggleCommentBox() {
+            const statusDropdown = document.getElementById("statusDropdown");
+            const commentBox = document.getElementById("commentBox");
+
+            // Show the comment box if the selected status is not "Operational"
+            if (statusDropdown.value !== "795540000") {
+                commentBox.style.display = "block";
+            } else {
+                commentBox.style.display = "none";
+            }
+        }
+
     </script>
 </body>
 </html>
