@@ -2,34 +2,145 @@
 <html>
 <head>
     <title>Return Asset</title>
+    <style>
+        /* Embedded CSS for styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        p {
+            margin: 10px 0;
+            font-size: 1rem;
+            color: #555555;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #333333;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            background-color: #ffffff;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+
+        input[type="submit"],
+        button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: #ffffff;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        button {
+            background-color: #cccccc;
+            color: #333333;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #999999;
+        }
+
+        .info {
+            font-size: 0.9rem;
+            color: #888888;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Return Asset</h1>
+        <p id="assetName">Loading Asset Name...</p>
+        <form id="statusForm" onsubmit="handleSubmit(); return false;">
+            <label for="statusDropdown">Select Return Status:</label>
+            <select id="statusDropdown" required>
+                <option value="">-- Select Status --</option>
+                <option value="795540000">🟢 Operational</option>
+                <option value="795540001">🟡 Requires Attention</option>
+                <option value="795540002">🔴 Requires Repair</option>
+                <option value="795540003">⛔️ Retired/Sold</option>
+            </select>
+            <input type="submit" value="Submit">
+            <button type="button" onclick="handleCancel()">Cancel</button>
+        </form>
+        <p class="info">Make sure to select a status before submitting.</p>
+    </div>
+
     <script>
         // Runs when the dialog is loaded
         window.onload = function () {
-            const { recordId, assetName } = parseDialogData();
-            displayDialogData(recordId, assetName);
+            const { assetName } = parseDialogData();
+            displayDialogData(assetName);
         };
 
         /**
-         * Parses the record ID and asset name from the query string.
-         * @returns {Object} An object containing recordId and assetName.
+         * Parses the asset name from the query string.
+         * @returns {Object} An object containing assetName.
          */
         function parseDialogData() {
             const params = new URLSearchParams(window.location.search);
             const data = params.get("data");
             const parsedData = JSON.parse(data || "{}");
             return {
-                recordId: parsedData.recordId || "Unknown",
                 assetName: parsedData.assetName || "Unknown"
             };
         }
 
         /**
-         * Displays the record ID and asset name in the HTML.
-         * @param {string} recordId - The record ID to display.
+         * Displays the asset name in the HTML.
          * @param {string} assetName - The asset name to display.
          */
-        function displayDialogData(recordId, assetName) {
-            document.getElementById("recordId").innerText = `Record ID: ${recordId}`;
+        function displayDialogData(assetName) {
             document.getElementById("assetName").innerText = `Asset Name: ${assetName}`;
         }
 
@@ -44,8 +155,8 @@
                 return;
             }
 
-            const { recordId, assetName } = parseDialogData();
-            returnResultToParent(selectedStatus, recordId, assetName);
+            const { assetName } = parseDialogData();
+            returnResultToParent(selectedStatus, assetName);
         }
 
         /**
@@ -57,15 +168,13 @@
         }
 
         /**
-         * Passes the selected status, record ID, and asset name back to the parent and closes the dialog.
+         * Passes the selected status and asset name back to the parent and closes the dialog.
          * @param {string} selectedStatus - The selected status.
-         * @param {string} recordId - The record ID to return.
          * @param {string} assetName - The asset name to return.
          */
-        function returnResultToParent(selectedStatus, recordId, assetName) {
+        function returnResultToParent(selectedStatus, assetName) {
             window.returnValue = {
                 selectedStatus: selectedStatus,
-                recordId: recordId,
                 assetName: assetName
             };
             window.close();
@@ -79,23 +188,5 @@
             window.close();
         }
     </script>
-</head>
-<body>
-    <h1>Return Asset</h1>
-    <p id="recordId">Loading Record ID...</p>
-    <p id="assetName">Loading Asset Name...</p>
-    <form id="statusForm" onsubmit="handleSubmit(); return false;">
-        <label for="statusDropdown">Select Return Status:</label>
-        <select id="statusDropdown" required>
-            <option value="">-- Select Status --</option>
-            <option value="795540000">🟢 Operational</option>
-            <option value="795540001">🟡 Requires Attention</option>
-            <option value="795540002">🔴 Requires Repair</option>
-            <option value="795540003">⛔️ Retired/Sold</option>
-        </select>
-        <br><br>
-        <input type="submit" value="Submit">
-        <button type="button" onclick="handleCancel()">Cancel</button>
-    </form>
 </body>
 </html>
