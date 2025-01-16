@@ -71,19 +71,46 @@ function openDialog(recordId, assetName) {
 }
 
 /**
- * Handles the success case when the dialog returns data for a specific record.
- * @param {string} recordId - The record ID the dialog was for.
+ * Handles the success case when the dialog returns data for a specific asset.
+ * Updates the fgs_statusafterreturn column in the fgs_projectasset table.
+ * @param {string} recordId - The record ID of the asset to update.
  * @param {string} assetName - The Asset Name the dialog was for.
  * @param {Object} dialogResult - The data returned by the dialog.
  */
-function handleDialogSuccess(recordId, assetName, dialogResult) {
-    console.log(`Record ID: ${recordId}, Asset: ${assetName}, Returned Value:`, dialogResult);
+async function handleDialogSuccess(recordId, assetName, dialogResult) {
+    const selectedStatus = dialogResult.returnValue.selectedStatus;
 
-    Xrm.Navigation.openAlertDialog({
-        text: `Asset: ${assetName}\nSelected Status: ${dialogResult.returnValue.selectedStatus}\nRecord ID: ${recordId}`,
-        title: "Success"
-    });
+    console.log(`Updating status for Asset: ${assetName}`);
+    console.log(`Selected Status: ${selectedStatus}`);
+
+    try {
+        // Create the data object for the update
+        const data = {
+            fgs_statusafterreturn: selectedStatus // Use the correct logical name for the column
+        };
+
+        // Update the fgs_projectasset table
+        console.log(`Updating fgs_statusafterreturn for Record ID: ${recordId}`);
+        await Xrm.WebApi.updateRecord("fgs_projectasset", recordId, data);
+
+        console.log(`Successfully updated fgs_statusafterreturn for Asset: ${assetName}`);
+
+        // Show success alert to the user
+        Xrm.Navigation.openAlertDialog({
+            text: `Asset: ${assetName}\nStatus successfully updated to: ${selectedStatus}`,
+            title: "Update Success"
+        });
+    } catch (error) {
+        console.error(`Error updating status for Asset: ${assetName}`, error);
+
+        // Show error alert to the user
+        Xrm.Navigation.openAlertDialog({
+            text: `An error occurred while updating the status for Asset: ${assetName}\nError: ${error.message}`,
+            title: "Update Failed"
+        });
+    }
 }
+
 
 /**
  * Handles errors in the overall process.
