@@ -53,7 +53,7 @@ function openDialog(assetName, currentIndex, totalAssets) {
 
     const navigationOptions = {
         target: 2,
-        width: 500,
+        width: 450,
         height: 500,
         position: 1,
         title: `Update Status for Asset: ${assetName} (${currentIndex} of ${totalAssets})`
