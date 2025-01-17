@@ -120,6 +120,7 @@
         window.onload = function () {
             const { assetName } = parseDialogData();
             displayDialogData(assetName);
+            toggleSubmitButton(); // Disable the submit button initially
         };
 
         /**
@@ -209,6 +210,23 @@
                 commentBox.style.display = "block";
             } else {
                 commentBox.style.display = "none";
+            }
+
+            toggleSubmitButton(); // update the submit button validation since the onchange event is triggered
+        }
+
+        function toggleSubmitButton() {
+            const statusDropdown = document.getElementById("statusDropdown");
+            const submitButton = document.querySelector('input[type="submit"]');
+
+            if (statusDropdown.value === "") {
+                submitButton.disabled = true;
+                submitButton.style.backgroundColor = "#cccccc";
+                submitButton.style.cursor = "not-allowed";
+            } else {
+                submitButton.disabled = false;
+                submitButton.style.backgroundColor = "#007bff";
+                submitButton.style.cursor = "pointer";
             }
         }
 
