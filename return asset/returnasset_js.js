@@ -1,12 +1,19 @@
 async function returnAsset(gridContext) {
     try {
         const recordIds = getSelectedRecordIds(gridContext);
-        const updatePromises = []; // Array to collect all update promises
+        const totalAssets = recordIds.length;
 
-        for (const recordId of recordIds) {
+        if (totalAssets === 0) {
+            throw new Error("No assets selected. Please select at least one asset to return.");
+        }
+
+        const updatePromises = [];
+
+        for (let index = 0; index < totalAssets; index++) {
+            const recordId = recordIds[index];
             const assetName = await fetchAssetName(recordId);
 
-            const dialogResult = await openDialog(assetName);
+            const dialogResult = await openDialog(assetName, index + 1, totalAssets);
 
             if (!dialogResult) {
                 // Skip this record if dialog was closed without action
@@ -19,8 +26,6 @@ async function returnAsset(gridContext) {
 
         // Wait for all updates to complete
         await Promise.all(updatePromises);
-
-        // Refresh the grid after all updates are completed
         refreshGrid(gridContext);
     } catch (error) {
         handleError(error);
@@ -38,7 +43,8 @@ function getSelectedRecordIds(gridContext) {
     return Object.values(selectedRows).map((row) => row._entityId.guid);
 }
 
-function openDialog(assetName) {
+function openDialog(assetName, currentIndex, totalAssets) {
+
     const pageInput = {
         pageType: "webresource",
         webresourceName: "fgs_returnasset_status_dialog",
@@ -47,23 +53,22 @@ function openDialog(assetName) {
 
     const navigationOptions = {
         target: 2,
-        width: 400,
+        width: 500,
         height: 500,
         position: 1,
-        title: `Update Status for Asset: ${assetName}`
+        title: `Update Status for Asset: ${assetName} (${currentIndex} of ${totalAssets})`
     };
 
     return Xrm.Navigation.navigateTo(pageInput, navigationOptions)
-                .then((dialogResult) => {
-                    if (!dialogResult || !dialogResult.returnValue) {
-                        //when user closed the dialog, do nothing
-                        return null;
-                    }
-                    return dialogResult;
-                })
-                .catch((error) => {
-                    throw error;
-                });
+        .then((dialogResult) => {
+            if (!dialogResult || !dialogResult.returnValue) {
+                return null; // When the user closes the dialog, do nothing
+            }
+            return dialogResult;
+        })
+        .catch((error) => {
+            throw new Error(`Failed to open dialog for asset: ${assetName}. ${error.message}`);
+        });
 }
 
 async function handleDialogSuccess(recordId, dialogResult) {
