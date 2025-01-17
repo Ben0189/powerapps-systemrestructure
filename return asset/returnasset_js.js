@@ -8,10 +8,13 @@ async function returnAsset(gridContext) {
 
             const dialogResult = await openDialog(assetName);
 
-            if (dialogResult) {
-                const updatePromise = handleDialogSuccess(recordId, dialogResult);
-                updatePromises.push(updatePromise);
+            if (!dialogResult) {
+                // Skip this record if dialog was closed without action
+                continue;
             }
+
+            const updatePromise = handleDialogSuccess(recordId, dialogResult);
+            updatePromises.push(updatePromise);
         }
 
         // Wait for all updates to complete
@@ -50,9 +53,17 @@ function openDialog(assetName) {
         title: `Update Status for Asset: ${assetName}`
     };
 
-    return Xrm.Navigation.navigateTo(pageInput, navigationOptions).catch((error) => {
-        throw error;
-    });
+    return Xrm.Navigation.navigateTo(pageInput, navigationOptions)
+                .then((dialogResult) => {
+                    if (!dialogResult || !dialogResult.returnValue) {
+                        //when user closed the dialog, do nothing
+                        return null;
+                    }
+                    return dialogResult;
+                })
+                .catch((error) => {
+                    throw error;
+                });
 }
 
 async function handleDialogSuccess(recordId, dialogResult) {
