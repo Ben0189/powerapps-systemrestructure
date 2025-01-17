@@ -7,19 +7,31 @@ async function validateAsset(executionContext) {
             var selectedRecord = lookupField.getValue()[0]; // Get selected record details
             console.log("Selected Record:", selectedRecord);
 
-            // Fetch related asset status using Web API
+            // Fetch the asset status using Web API
             var result = await Xrm.WebApi.retrieveRecord(
                 selectedRecord.entityType, // Logical name of the entity
                 selectedRecord.id,         // GUID of the selected record
-                "?$select=fgs_assetstatus" // Use the actual logical name of the column
+                "?$select=fgs_assetstatus" // Logical name of the status column
             );
 
-            console.log("Asset Status:", result.fgs_assetstatus);
+            var statusValue = result.fgs_assetstatus; // Numeric value of the status
+            console.log("Asset Status Value:", statusValue);
 
-            // Check the status and display a warning if needed
-            if (result.fgs_assetstatus !== "Operational") { // Update this based on your status value or label
+            // Map status values to labels
+            var statusLabels = {
+                795540000: "Operational",
+                795540001: "Requires Attention",
+                795540002: "Requires Repair",
+                795540003: "Retired/Sold"
+            };
+
+            var statusLabel = statusLabels[statusValue] || "Unknown"; // Default to "Unknown"
+            console.log("Asset Status Label:", statusLabel);
+
+            // Notify user if the status is not "Operational"
+            if (statusLabel !== "Operational") {
                 formContext.ui.setFormNotification(
-                    `Warning: The selected asset has a status of "${result.fgs_assetstatus}".`,
+                    `Warning: The chosen asset is marked as "${statusLabel}" and not operational. Do you still want to proceed with its allocation?`,
                     "WARNING",
                     "statusWarning"
                 );
